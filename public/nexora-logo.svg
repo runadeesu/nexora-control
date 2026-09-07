@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="NEXORA emblem">
+  <defs>
+    <radialGradient id="bg" cx="35%" cy="25%" r="85%">
+      <stop offset="0" stop-color="#2d2a25"/>
+      <stop offset=".55" stop-color="#151514"/>
+      <stop offset="1" stop-color="#090909"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f0d39a"/>
+      <stop offset=".28" stop-color="#9c7337"/>
+      <stop offset=".55" stop-color="#e3bd76"/>
+      <stop offset=".78" stop-color="#6f4f25"/>
+      <stop offset="1" stop-color="#c79a50"/>
+    </linearGradient>
+  </defs>
+  <circle cx="128" cy="128" r="121" fill="url(#bg)" stroke="#4a4032" stroke-width="2"/>
+  <circle cx="128" cy="128" r="105" fill="none" stroke="#7a6039" stroke-width="2" opacity=".55"/>
+  <path d="M76 174V82l23-13 57 79V86l24-13v101l-23 13-57-79v53z" fill="url(#metal)" stroke="#4c3519" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M58 124c6-41 36-72 76-78" fill="none" stroke="#b58b4a" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+  <path d="M198 132c-4 37-30 67-67 77" fill="none" stroke="#7b5a2d" stroke-width="5" stroke-linecap="round" opacity=".75"/>
+  <path d="M185 53l4 10 10 4-10 4-4 10-4-10-10-4 10-4z" fill="#d8b46f"/>
+</svg>
