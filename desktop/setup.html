@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NEXORA Control Setup</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 20% 20%, #1b2030 0, #090b10 45%, #050608 100%); color: #f5f7fb; }
+    .card { width: min(680px, calc(100vw - 40px)); padding: 42px; border: 1px solid #2c3344; border-radius: 24px; background: rgba(12,15,22,.92); box-shadow: 0 24px 80px rgba(0,0,0,.45); }
+    .eyebrow { font-size: 12px; letter-spacing: .28em; opacity: .58; }
+    h1 { margin: 10px 0 12px; font-size: clamp(34px, 7vw, 64px); line-height: .95; letter-spacing: -.04em; }
+    p { color: #aeb6c8; line-height: 1.7; }
+    label { display: block; margin-top: 28px; font-size: 13px; color: #d9deea; }
+    input { width: 100%; margin-top: 10px; padding: 15px 16px; border-radius: 12px; border: 1px solid #343d52; background: #080a0f; color: #fff; font: inherit; outline: none; }
+    input:focus { border-color: #7586b5; }
+    .actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+    button { border: 0; border-radius: 12px; padding: 13px 18px; font-weight: 700; cursor: pointer; }
+    .primary { background: #f4f7ff; color: #090b10; }
+    .ghost { background: #171b25; color: #dfe5f2; }
+    .error { min-height: 24px; margin-top: 12px; color: #ff9aa8; font-size: 13px; }
+    .hint { margin-top: 24px; padding-top: 22px; border-top: 1px solid #242a38; font-size: 13px; }
+    code { color: #e8ecf8; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="eyebrow">NEXORA STUDIOS</div>
+    <h1>CONTROL</h1>
+    <p>WindowsアプリからNEXORA Controlへ接続します。初回だけ、現在公開しているVercel版のURLを入力してください。</p>
+
+    <form id="form">
+      <label>
+        NEXORA Control URL
+        <input id="url" type="url" autocomplete="url" spellcheck="false" placeholder="https://your-project.vercel.app" required />
+      </label>
+      <div class="actions">
+        <button class="primary" type="submit">接続して開始</button>
+        <button class="ghost" id="clear" type="button">保存URLを消去</button>
+      </div>
+      <div class="error" id="error"></div>
+    </form>
+
+    <p class="hint">このURLはこのPC内だけに保存されます。後から上部メニューの <code>NEXORA → Control URLを変更</code> で変更できます。</p>
+  </main>
+
+  <script>
+    const KEY = "nexora-control-url";
+    const params = new URLSearchParams(location.search);
+    const editing = params.get("edit") === "1";
+    const input = document.getElementById("url");
+    const error = document.getElementById("error");
+    const saved = localStorage.getItem(KEY) || "";
+
+    input.value = saved;
+    if (saved && !editing) location.replace(saved);
+
+    document.getElementById("form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      error.textContent = "";
+      let value = input.value.trim().replace(/\/$/, "");
+      try {
+        const parsed = new URL(value);
+        const local = ["localhost", "127.0.0.1"].includes(parsed.hostname);
+        if (parsed.protocol !== "https:" && !(local && parsed.protocol === "http:")) {
+          throw new Error("公開URLは https:// を使用してください。");
+        }
+        localStorage.setItem(KEY, parsed.origin);
+        location.href = parsed.origin;
+      } catch (e) {
+        error.textContent = e instanceof Error ? e.message : "正しいURLを入力してください。";
+      }
+    });
+
+    document.getElementById("clear").addEventListener("click", () => {
+      localStorage.removeItem(KEY);
+      input.value = "";
+      error.textContent = "保存URLを消去しました。";
+      input.focus();
+    });
+  </script>
+</body>
+</html>
