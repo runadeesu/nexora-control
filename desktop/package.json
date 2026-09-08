@@ -1,0 +1,42 @@
+{
+  "name": "nexora-control-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEXORA Control for Windows",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "44.2.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.nexorastudios.control",
+    "productName": "NEXORA Control",
+    "artifactName": "NEXORA-Control-Setup-${version}.${ext}",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.cjs",
+      "setup.html"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NEXORA Control"
+    }
+  }
+}
