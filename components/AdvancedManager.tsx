@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import BulkPermissions from "./BulkPermissions";
 
 type PermissionDef = { key: string; label: string; bit: string; channel: boolean; role: boolean };
 type Overwrite = { id: string; type: 0 | 1; allow: string; deny: string };
@@ -275,16 +276,21 @@ export default function AdvancedManager({ guildId }: { guildId: string }) {
 
       {tab === "permissions" ? (
         <div className="permissions-editor">
-          <div className="permission-pickers">
-            <label>チャンネル<select value={selectedChannelId} onChange={(e) => setSelectedChannelId(e.target.value)}>{data.channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
-            <label>ロール<select value={permissionRoleId} onChange={(e) => setPermissionRoleId(e.target.value)}>{data.roles.filter((r) => !r.managed).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
-          </div>
-          <p className="permission-help">継承＝サーバー/カテゴリーの設定を使用。許可・拒否はこのチャンネルだけ上書きします。</p>
-          <div className="permission-table">
-            {selectedChannel && permissionRoleId ? channelPermissions.map((perm) => {
-              const state = permissionState(selectedChannel, permissionRoleId, perm.bit);
-              return <div className="permission-row" key={perm.key}><span>{perm.label}</span><div className="tri-state">{(["inherit", "allow", "deny"] as const).map((value) => <button key={value} type="button" className={state === value ? `active ${value}` : ""} disabled={busy} onClick={() => void action("channel.permission", { channelId: selectedChannel.id, roleId: permissionRoleId, bit: perm.bit, state: value })}>{value === "inherit" ? "継承" : value === "allow" ? "許可" : "拒否"}</button>)}</div></div>;
-            }) : null}
+          <BulkPermissions guildId={guildId} />
+          <div style={{ borderTop: "1px solid var(--line)", paddingTop: 20, marginTop: 8 }}>
+            <div className="mini-title">SINGLE CHANNEL ADVANCED</div>
+            <p className="permission-help">細かく1チャンネルだけ調整したい場合はこちら。普段は上の一括エディターだけでOKです。</p>
+            <div className="permission-pickers">
+              <label>チャンネル<select value={selectedChannelId} onChange={(e) => setSelectedChannelId(e.target.value)}>{data.channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
+              <label>ロール<select value={permissionRoleId} onChange={(e) => setPermissionRoleId(e.target.value)}>{data.roles.filter((r) => !r.managed).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select></label>
+            </div>
+            <p className="permission-help">継承＝サーバー/カテゴリーの設定を使用。許可・拒否はこのチャンネルだけ上書きします。</p>
+            <div className="permission-table">
+              {selectedChannel && permissionRoleId ? channelPermissions.map((perm) => {
+                const state = permissionState(selectedChannel, permissionRoleId, perm.bit);
+                return <div className="permission-row" key={perm.key}><span>{perm.label}</span><div className="tri-state">{(["inherit", "allow", "deny"] as const).map((value) => <button key={value} type="button" className={state === value ? `active ${value}` : ""} disabled={busy} onClick={() => void action("channel.permission", { channelId: selectedChannel.id, roleId: permissionRoleId, bit: perm.bit, state: value })}>{value === "inherit" ? "継承" : value === "allow" ? "許可" : "拒否"}</button>)}</div></div>;
+              }) : null}
+            </div>
           </div>
         </div>
       ) : null}
