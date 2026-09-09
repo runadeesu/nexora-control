@@ -66,6 +66,39 @@ function publicRole(role: DiscordRole, guildId: string, botTopPosition: number) 
   };
 }
 
+function updateOverwriteBits(
+  channel: DiscordChannel,
+  roleId: string,
+  states: Record<string, unknown>,
+) {
+  const overwrite = (channel.permission_overwrites || []).find((x) => x.id === roleId && x.type === 0);
+  let allow = BigInt(overwrite?.allow || "0");
+  let deny = BigInt(overwrite?.deny || "0");
+
+  for (const def of PERMISSION_DEFS) {
+    if (!def.channel || !(def.key in states)) continue;
+    const state = String(states[def.key]);
+    if (!["allow", "deny", "inherit"].includes(state)) continue;
+    allow &= ~def.bit;
+    deny &= ~def.bit;
+    if (state === "allow") allow |= def.bit;
+    if (state === "deny") deny |= def.bit;
+  }
+
+  return { allow, deny };
+}
+
+async function writeRoleOverwrite(channelId: string, roleId: string, allow: bigint, deny: bigint) {
+  if (allow === 0n && deny === 0n) {
+    await botDiscordFetch(`/channels/${channelId}/permissions/${roleId}`, { method: "DELETE" }).catch(() => undefined);
+    return;
+  }
+  await botDiscordFetch(`/channels/${channelId}/permissions/${roleId}`, {
+    method: "PUT",
+    body: JSON.stringify({ type: 0, allow: allow.toString(), deny: deny.toString() }),
+  });
+}
+
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ guildId: string }> },
@@ -211,23 +244,39 @@ export async function POST(
       if ((CHANNEL_PERMISSION_MASK & bit) !== bit || bit === 0n) return NextResponse.json({ error: "未対応の権限です" }, { status: 400 });
       if (!["allow", "deny", "inherit"].includes(state)) return NextResponse.json({ error: "権限状態が不正です" }, { status: 400 });
 
-      const overwrite = (channel.permission_overwrites || []).find((x) => x.id === roleId && x.type === 0);
-      let allow = BigInt(overwrite?.allow || "0");
-      let deny = BigInt(overwrite?.deny || "0");
-      allow &= ~bit;
-      deny &= ~bit;
-      if (state === "allow") allow |= bit;
-      if (state === "deny") deny |= bit;
-
-      if (allow === 0n && deny === 0n) {
-        await botDiscordFetch(`/channels/${channelId}/permissions/${roleId}`, { method: "DELETE" }).catch(() => undefined);
-      } else {
-        await botDiscordFetch(`/channels/${channelId}/permissions/${roleId}`, {
-          method: "PUT",
-          body: JSON.stringify({ type: 0, allow: allow.toString(), deny: deny.toString() }),
-        });
-      }
+      const def = PERMISSION_DEFS.find((item) => item.channel && item.bit === bit);
+      if (!def) return NextResponse.json({ error: "未対応の権限です" }, { status: 400 });
+      const { allow, deny } = updateOverwriteBits(channel, roleId, { [def.key]: state });
+      await writeRoleOverwrite(channelId, roleId, allow, deny);
       return NextResponse.json({ ok: true, allow: allow.toString(), deny: deny.toString() });
+    }
+
+    if (action === "channel.permission.bulk") {
+      const roleId = String(body.roleId || "");
+      const role = roles.find((r) => r.id === roleId);
+      if (!role || role.managed) return NextResponse.json({ error: "ロールが見つかりません" }, { status: 404 });
+
+      const requested = Array.isArray(body.channelIds) ? body.channelIds.map(String) : [];
+      const uniqueIds = [...new Set(requested)].slice(0, 100);
+      if (!uniqueIds.length) return NextResponse.json({ error: "対象チャンネルを選択してください" }, { status: 400 });
+      const selectedChannels = uniqueIds.map((id) => channels.find((c) => c.id === id)).filter(Boolean) as DiscordChannel[];
+      if (selectedChannels.length !== uniqueIds.length) return NextResponse.json({ error: "対象に存在しないチャンネルがあります" }, { status: 400 });
+
+      const states = (body.states || {}) as Record<string, unknown>;
+      const supportedKeys = new Set(PERMISSION_DEFS.filter((p) => p.channel).map((p) => p.key));
+      const cleanStates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(states)) {
+        if (!supportedKeys.has(key as never)) continue;
+        const state = String(value);
+        if (["allow", "deny", "inherit"].includes(state)) cleanStates[key] = state;
+      }
+      if (!Object.keys(cleanStates).length) return NextResponse.json({ error: "変更する権限を選択してください" }, { status: 400 });
+
+      for (const channel of selectedChannels) {
+        const { allow, deny } = updateOverwriteBits(channel, roleId, cleanStates);
+        await writeRoleOverwrite(channel.id, roleId, allow, deny);
+      }
+      return NextResponse.json({ ok: true, changedChannels: selectedChannels.length });
     }
 
     if (action === "role.update") {
